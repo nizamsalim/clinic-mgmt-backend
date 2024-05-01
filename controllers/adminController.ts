@@ -69,6 +69,20 @@ export const getDoctors = (req: Request, res: Response) => {
   });
 };
 
+export const getDoctorByName = (req: Request, res: Response) => {
+  const { name } = req.params;
+  const query = `select u.user_id,CONCAT('Dr. ',u.name) as name,u.phone,d.license_number,d.salary,de.department_name,s.specialization_name from user u natural join doctor d natural join department de natural join specialization s where u.name like '%${name}%'`;
+  db.query(query, (err0, res0) => {
+    if (err0) {
+      return internalServerError(res, err0);
+    }
+    return res.json({
+      success: true,
+      doctors: res0,
+    });
+  });
+};
+
 export const updateDoctor = (req: Request, res: Response) => {
   const body: DoctorCreate & { user_id: string; doctor_id: string } = req.body;
 };
@@ -180,7 +194,7 @@ interface AppointmentMapping {
   doctor_id: string;
 }
 
-const runQuery = async (query: string, res: Response) => {
+export const runQuery = async (query: string, res: Response) => {
   return new Promise((resolve, reject) => {
     db.query(query, (err0, res0) => {
       if (err0) return internalServerError(res, err0);
@@ -198,6 +212,9 @@ export const getAppointments = (req: Request, res: Response) => {
       if (err0) {
         return internalServerError(res, err0);
       }
+      if (!res0 || res0.length === 0) {
+        return res.json({ success: true, appointments: [] });
+      }
       for (let i = 0; i < res0.length; i++) {
         let appointment = res0[i];
         const getAppointmentDetails = `select ap.appointment_id,da.da_date as date,ts.start_time,ts.end_time,ap.status from appointment ap,doctor_availability da,timeslot ts where ap.doctor_availability_id=da.doctor_availability_id and da.timeslot_id=ts.timeslot_id and ap.appointment_id=${appointment.appointment_id}`;
@@ -206,13 +223,44 @@ export const getAppointments = (req: Request, res: Response) => {
         const appointmentDetails = await runQuery(getAppointmentDetails, res);
         const doctorDetails = await runQuery(getDoctorDetails, res);
         const patientDetails = await runQuery(getPatientDetails, res);
-        console.log(appointmentDetails);
         appointments.push({
           appointmentDetails,
           doctorDetails,
           patientDetails,
         });
       }
+      res.json({ success: true, appointments });
+    }
+  );
+};
+
+export const getAppointmentById = (req: Request, res: Response) => {
+  const { appointment_id } = req.params;
+  const getAppointmentMappings = `select ap.appointment_id,pap.patient_id,dap.doctor_id from appointment ap natural join patient_appointment pap natural join doctor_appointment dap where ap.appointment_id=${appointment_id}`;
+  let appointments: Array<Object> = [];
+  db.query(
+    getAppointmentMappings,
+    async (err0: Error, res0: Array<AppointmentMapping>) => {
+      if (err0) {
+        return internalServerError(res, err0);
+      }
+      if (!res0 || res0.length === 0) {
+        return res.json({ success: true, appointments: [] });
+      }
+
+      let appointment = res0[0];
+      const getAppointmentDetails = `select ap.appointment_id,da.da_date as date,ts.start_time,ts.end_time,ap.status from appointment ap,doctor_availability da,timeslot ts where ap.doctor_availability_id=da.doctor_availability_id and da.timeslot_id=ts.timeslot_id and ap.appointment_id=${appointment.appointment_id}`;
+      const getPatientDetails = `select u.name,u.phone,p.dob,p.insurance_number,p.visits from user u natural join patient p where u.user_id=${appointment.patient_id}`;
+      const getDoctorDetails = `select concat('Dr. ',u.name) as name,u.phone,d.department_name,s.specialization_name from user u natural join doctor do natural join department d natural join specialization s where u.user_id=${appointment.doctor_id}`;
+      const appointmentDetails = await runQuery(getAppointmentDetails, res);
+      const doctorDetails = await runQuery(getDoctorDetails, res);
+      const patientDetails = await runQuery(getPatientDetails, res);
+      appointments.push({
+        appointmentDetails,
+        doctorDetails,
+        patientDetails,
+      });
+
       res.json({ success: true, appointments });
     }
   );
@@ -229,6 +277,27 @@ export const generateToken = async (req: Request, res: Response) => {
     res
   );
   return res.json({ success: true });
+};
+
+export const getAllPatients = (req: Request, res: Response) => {
+  db.query(
+    "select u.user_id,u.name,u.phone,p.dob,p.insurance_number,p.address,p.visits from user u natural join patient p",
+    (err0, res0) => {
+      if (err0) return internalServerError(res, err0);
+      return res.json({ success: true, patients: res0 });
+    }
+  );
+};
+
+export const getPatientByName = (req: Request, res: Response) => {
+  const { name } = req.params;
+  db.query(
+    `select u.user_id,u.name,u.phone,p.dob,p.insurance_number,p.address,p.visits from user u natural join patient p where u.name like '%${name}%'`,
+    (err0, res0) => {
+      if (err0) return internalServerError(res, err0);
+      return res.json({ success: true, patients: res0 });
+    }
+  );
 };
 
 export const initDb = (req: Request, res: Response) => {
@@ -309,6 +378,5 @@ export const initDb = (req: Request, res: Response) => {
       continue;
     }
   }
-  console.log();
   res.end();
 };

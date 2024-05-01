@@ -6,6 +6,7 @@ const router = (0, express_1.Router)();
 router.get("/init", adminController_1.initDb);
 router.post("/doctor/create", adminController_1.createDoctor);
 router.get("/doctors/get", adminController_1.getDoctors);
+router.get("/doctor/get/:name", adminController_1.getDoctorByName);
 // @TODO
 router.post("/doctor/update", adminController_1.updateDoctor);
 router.post("/doctor/delete", adminController_1.deleteDoctor);
@@ -17,5 +18,8 @@ router.get("/doctors/s/:specialization_id", adminController_1.getDoctorsBySpecia
 router.post("/department/create", adminController_1.createDepartment);
 router.post("/specialization/create", adminController_1.createSpecialization);
 router.get("/appointments", adminController_1.getAppointments);
+router.get("/appointment/:appointment_id", adminController_1.getAppointmentById);
 router.post("/token", adminController_1.generateToken);
+router.get("/patients", adminController_1.getAllPatients);
+router.get("/patient/:name", adminController_1.getPatientByName);
 exports.default = router;

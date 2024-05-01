@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.initDb = exports.generateToken = exports.getAppointments = exports.createSpecialization = exports.createDepartment = exports.getSpecializationsByDeptId = exports.getDoctorsBySpecialization = exports.getDoctorsByDepartment = exports.getAllSpecializations = exports.getAllDepartments = exports.deleteDoctor = exports.updateDoctor = exports.getDoctors = exports.createDoctor = void 0;
+exports.initDb = exports.getPatientByName = exports.getAllPatients = exports.generateToken = exports.getAppointmentById = exports.getAppointments = exports.runQuery = exports.createSpecialization = exports.createDepartment = exports.getSpecializationsByDeptId = exports.getDoctorsBySpecialization = exports.getDoctorsByDepartment = exports.getAllSpecializations = exports.getAllDepartments = exports.deleteDoctor = exports.updateDoctor = exports.getDoctorByName = exports.getDoctors = exports.createDoctor = void 0;
 const index_1 = require("../index");
 const internalServerError = (res, err) => {
     console.log(err);
@@ -75,6 +75,20 @@ const getDoctors = (req, res) => {
     });
 };
 exports.getDoctors = getDoctors;
+const getDoctorByName = (req, res) => {
+    const { name } = req.params;
+    const query = `select u.user_id,CONCAT('Dr. ',u.name) as name,u.phone,d.license_number,d.salary,de.department_name,s.specialization_name from user u natural join doctor d natural join department de natural join specialization s where u.name like '%${name}%'`;
+    index_1.db.query(query, (err0, res0) => {
+        if (err0) {
+            return internalServerError(res, err0);
+        }
+        return res.json({
+            success: true,
+            doctors: res0,
+        });
+    });
+};
+exports.getDoctorByName = getDoctorByName;
 const updateDoctor = (req, res) => {
     const body = req.body;
 };
@@ -173,6 +187,7 @@ const runQuery = (query, res) => __awaiter(void 0, void 0, void 0, function* () 
         });
     });
 });
+exports.runQuery = runQuery;
 const getAppointments = (req, res) => {
     const getAppointmentMappings = `select ap.appointment_id,pap.patient_id,dap.doctor_id from appointment ap natural join patient_appointment pap natural join doctor_appointment dap`;
     let appointments = [];
@@ -180,15 +195,17 @@ const getAppointments = (req, res) => {
         if (err0) {
             return internalServerError(res, err0);
         }
+        if (!res0 || res0.length === 0) {
+            return res.json({ success: true, appointments: [] });
+        }
         for (let i = 0; i < res0.length; i++) {
             let appointment = res0[i];
             const getAppointmentDetails = `select ap.appointment_id,da.da_date as date,ts.start_time,ts.end_time,ap.status from appointment ap,doctor_availability da,timeslot ts where ap.doctor_availability_id=da.doctor_availability_id and da.timeslot_id=ts.timeslot_id and ap.appointment_id=${appointment.appointment_id}`;
             const getPatientDetails = `select u.name,u.phone,p.dob,p.insurance_number,p.visits from user u natural join patient p where u.user_id=${appointment.patient_id}`;
             const getDoctorDetails = `select concat('Dr. ',u.name) as name,u.phone,d.department_name,s.specialization_name from user u natural join doctor do natural join department d natural join specialization s where u.user_id=${appointment.doctor_id}`;
-            const appointmentDetails = yield runQuery(getAppointmentDetails, res);
-            const doctorDetails = yield runQuery(getDoctorDetails, res);
-            const patientDetails = yield runQuery(getPatientDetails, res);
-            console.log(appointmentDetails);
+            const appointmentDetails = yield (0, exports.runQuery)(getAppointmentDetails, res);
+            const doctorDetails = yield (0, exports.runQuery)(getDoctorDetails, res);
+            const patientDetails = yield (0, exports.runQuery)(getPatientDetails, res);
             appointments.push({
                 appointmentDetails,
                 doctorDetails,
@@ -199,13 +216,57 @@ const getAppointments = (req, res) => {
     }));
 };
 exports.getAppointments = getAppointments;
+const getAppointmentById = (req, res) => {
+    const { appointment_id } = req.params;
+    const getAppointmentMappings = `select ap.appointment_id,pap.patient_id,dap.doctor_id from appointment ap natural join patient_appointment pap natural join doctor_appointment dap where ap.appointment_id=${appointment_id}`;
+    let appointments = [];
+    index_1.db.query(getAppointmentMappings, (err0, res0) => __awaiter(void 0, void 0, void 0, function* () {
+        if (err0) {
+            return internalServerError(res, err0);
+        }
+        if (!res0 || res0.length === 0) {
+            return res.json({ success: true, appointments: [] });
+        }
+        let appointment = res0[0];
+        const getAppointmentDetails = `select ap.appointment_id,da.da_date as date,ts.start_time,ts.end_time,ap.status from appointment ap,doctor_availability da,timeslot ts where ap.doctor_availability_id=da.doctor_availability_id and da.timeslot_id=ts.timeslot_id and ap.appointment_id=${appointment.appointment_id}`;
+        const getPatientDetails = `select u.name,u.phone,p.dob,p.insurance_number,p.visits from user u natural join patient p where u.user_id=${appointment.patient_id}`;
+        const getDoctorDetails = `select concat('Dr. ',u.name) as name,u.phone,d.department_name,s.specialization_name from user u natural join doctor do natural join department d natural join specialization s where u.user_id=${appointment.doctor_id}`;
+        const appointmentDetails = yield (0, exports.runQuery)(getAppointmentDetails, res);
+        const doctorDetails = yield (0, exports.runQuery)(getDoctorDetails, res);
+        const patientDetails = yield (0, exports.runQuery)(getPatientDetails, res);
+        appointments.push({
+            appointmentDetails,
+            doctorDetails,
+            patientDetails,
+        });
+        res.json({ success: true, appointments });
+    }));
+};
+exports.getAppointmentById = getAppointmentById;
 const generateToken = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const appointment_id = req.body.appointment_id;
-    yield runQuery(`update appointment set status='COMPLETED' where appointment_id=${appointment_id}`, res);
-    yield runQuery(`update patient set visits=visits+1 where user_id=(select patient_id from patient_appointment where patient_appointment.appointment_id=${appointment_id})`, res);
+    yield (0, exports.runQuery)(`update appointment set status='COMPLETED' where appointment_id=${appointment_id}`, res);
+    yield (0, exports.runQuery)(`update patient set visits=visits+1 where user_id=(select patient_id from patient_appointment where patient_appointment.appointment_id=${appointment_id})`, res);
     return res.json({ success: true });
 });
 exports.generateToken = generateToken;
+const getAllPatients = (req, res) => {
+    index_1.db.query("select u.user_id,u.name,u.phone,p.dob,p.insurance_number,p.address,p.visits from user u natural join patient p", (err0, res0) => {
+        if (err0)
+            return internalServerError(res, err0);
+        return res.json({ success: true, patients: res0 });
+    });
+};
+exports.getAllPatients = getAllPatients;
+const getPatientByName = (req, res) => {
+    const { name } = req.params;
+    index_1.db.query(`select u.user_id,u.name,u.phone,p.dob,p.insurance_number,p.address,p.visits from user u natural join patient p where u.name like '%${name}%'`, (err0, res0) => {
+        if (err0)
+            return internalServerError(res, err0);
+        return res.json({ success: true, patients: res0 });
+    });
+};
+exports.getPatientByName = getPatientByName;
 const initDb = (req, res) => {
     const initQueries = [
         "create database if not exists dbs",
@@ -284,7 +345,6 @@ const initDb = (req, res) => {
             continue;
         }
     }
-    console.log();
     res.end();
 };
 exports.initDb = initDb;

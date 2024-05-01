@@ -1,6 +1,7 @@
 import { Request, Response, Router } from "express";
 import {
   createAppointment,
+  deleteAppointment,
   getAvailableDoctors,
   getMyAppointments,
 } from "../controllers/patientController";
@@ -33,5 +34,11 @@ router.get("/appointments", verifyPatientAuthToken, getMyAppointments);
 router.post("/appointment/create", verifyPatientAuthToken, createAppointment);
 
 router.post("/availabledoctors", verifyPatientAuthToken, getAvailableDoctors);
+
+router.delete(
+  "/appointment/:appointment_id",
+  verifyPatientAuthToken,
+  deleteAppointment
+);
 
 export default router;

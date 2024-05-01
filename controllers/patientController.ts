@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { db } from "../index";
+import { runQuery } from "./adminController";
 
 const internalServerError = (res: Response, err: Error) => {
   console.log(err);
@@ -107,4 +108,22 @@ export const getMyAppointments = (req: Request, res: Response) => {
     }
     return res.json({ success: true, appointments: res0 });
   });
+};
+
+export const deleteAppointment = async (req: Request, res: Response) => {
+  const { appointment_id } = req.params;
+  const result = (await runQuery(
+    `select da.doctor_availability_id from appointment da where da.appointment_id=${appointment_id}`,
+    res
+  )) as { doctor_availability_id: string };
+  const { doctor_availability_id } = result;
+  await runQuery(
+    `update appointment set status='CANCELLED' where appointment_id=${appointment_id}`,
+    res
+  );
+  await runQuery(
+    `update doctor_availability da set da.status='FREE' where da.doctor_availability_id=${doctor_availability_id}`,
+    res
+  );
+  res.json({ success: true });
 };

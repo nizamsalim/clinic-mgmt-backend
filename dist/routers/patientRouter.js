@@ -24,4 +24,5 @@ const verifyPatientAuthToken = (req, res, next) => {
 router.get("/appointments", verifyPatientAuthToken, patientController_1.getMyAppointments);
 router.post("/appointment/create", verifyPatientAuthToken, patientController_1.createAppointment);
 router.post("/availabledoctors", verifyPatientAuthToken, patientController_1.getAvailableDoctors);
+router.delete("/appointment/:appointment_id", verifyPatientAuthToken, patientController_1.deleteAppointment);
 exports.default = router;
