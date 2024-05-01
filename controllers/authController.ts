@@ -1,21 +1,20 @@
 import { Request, Response } from "express";
-import { PatientLogin, PatientSignup } from "../Interfaces/interfaces";
-import Database from "../database/Database";
+import {
+  PatientLogin,
+  PatientSignup,
+  USER_ROLE,
+} from "../Interfaces/interfaces";
 import { sign } from "jsonwebtoken";
+import { db } from "../index";
+
 // import { hashSync } from "bcrypt";
 // import { hashSync } from "bcrypt";
 
-const obj = new Database();
-const db = obj.db;
-const JWT_SECRET =
+export const JWT_SECRET =
   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789987654321";
-const USER_ROLES = {
-  doctor: "DOCTOR",
-  patient: "PATIENT",
-  admin: "ADMIN",
-};
 
-const internalServerError = (res: Response) => {
+const internalServerError = (res: Response, err: Error) => {
+  console.log(err);
   return res.status(500).json({
     success: false,
     statusCode: 500,
@@ -28,7 +27,7 @@ export const doPatientSignup = (req: Request, res: Response) => {
   const userExistsQuery = `select * from user where phone='${body.phone}'`;
   db.query(userExistsQuery, (err0, data) => {
     if (err0) {
-      return internalServerError(res);
+      return internalServerError(res, err0);
     }
     if (data.length !== 0) {
       return res.json({
@@ -37,27 +36,27 @@ export const doPatientSignup = (req: Request, res: Response) => {
       });
     }
 
-    // const passwordHash = hashSync(body.password, 10);
-    const createUserQuery = `insert into user(name,phone,user_role,username,password) values('${body.name}','${body.phone}','${USER_ROLES.patient}','${body.username}','${body.password}')`;
+    const createUserQuery = `insert into user(name,phone,user_role,username,password) values('${body.name}','${body.phone}','${USER_ROLE.patient}','${body.username}','${body.password}')`;
     db.query(createUserQuery, (err1, res1) => {
       if (err1) {
-        return internalServerError(res);
+        return internalServerError(res, err1);
       }
       // console.log(result.insertId);
       const u_id = res1.insertId;
       const createPatientQuery = `insert into patient values(${u_id},'${body.dob}','${body.insurance_number}','${body.address}',0)`;
       db.query(createPatientQuery, (err2, res2) => {
         if (err2) {
-          return internalServerError(res);
+          return internalServerError(res, err2);
         }
         const authToken = sign(
-          { user_id: u_id, user_role: USER_ROLES.patient },
+          { user_id: u_id, user_role: USER_ROLE.patient },
           JWT_SECRET
         );
         return res.json({
           success: true,
           user: {
             user_id: u_id,
+            username: body.name,
           },
           auth_token: authToken,
         });
@@ -109,6 +108,7 @@ export const doLogin = (req: Request, res: Response) => {
       success: true,
       user: {
         user_id: u_id,
+        username: user.name,
       },
       auth_token: authToken,
     });

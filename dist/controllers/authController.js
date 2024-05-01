@@ -1,22 +1,14 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.doDoctorLogin = exports.doLogin = exports.doPatientSignup = void 0;
-const Database_1 = __importDefault(require("../database/Database"));
+exports.doDoctorLogin = exports.doLogin = exports.doPatientSignup = exports.JWT_SECRET = void 0;
+const interfaces_1 = require("../Interfaces/interfaces");
 const jsonwebtoken_1 = require("jsonwebtoken");
+const index_1 = require("../index");
 // import { hashSync } from "bcrypt";
 // import { hashSync } from "bcrypt";
-const obj = new Database_1.default();
-const db = obj.db;
-const JWT_SECRET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789987654321";
-const USER_ROLES = {
-    doctor: "DOCTOR",
-    patient: "PATIENT",
-    admin: "ADMIN",
-};
-const internalServerError = (res) => {
+exports.JWT_SECRET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789987654321";
+const internalServerError = (res, err) => {
+    console.log(err);
     return res.status(500).json({
         success: false,
         statusCode: 500,
@@ -26,9 +18,9 @@ const internalServerError = (res) => {
 const doPatientSignup = (req, res) => {
     const body = req.body;
     const userExistsQuery = `select * from user where phone='${body.phone}'`;
-    db.query(userExistsQuery, (err0, data) => {
+    index_1.db.query(userExistsQuery, (err0, data) => {
         if (err0) {
-            return internalServerError(res);
+            return internalServerError(res, err0);
         }
         if (data.length !== 0) {
             return res.json({
@@ -36,24 +28,24 @@ const doPatientSignup = (req, res) => {
                 error: "User with this phone number already exists",
             });
         }
-        // const passwordHash = hashSync(body.password, 10);
-        const createUserQuery = `insert into user(name,phone,user_role,username,password) values('${body.name}','${body.phone}','${USER_ROLES.patient}','${body.username}','${body.password}')`;
-        db.query(createUserQuery, (err1, res1) => {
+        const createUserQuery = `insert into user(name,phone,user_role,username,password) values('${body.name}','${body.phone}','${interfaces_1.USER_ROLE.patient}','${body.username}','${body.password}')`;
+        index_1.db.query(createUserQuery, (err1, res1) => {
             if (err1) {
-                return internalServerError(res);
+                return internalServerError(res, err1);
             }
             // console.log(result.insertId);
             const u_id = res1.insertId;
             const createPatientQuery = `insert into patient values(${u_id},'${body.dob}','${body.insurance_number}','${body.address}',0)`;
-            db.query(createPatientQuery, (err2, res2) => {
+            index_1.db.query(createPatientQuery, (err2, res2) => {
                 if (err2) {
-                    return internalServerError(res);
+                    return internalServerError(res, err2);
                 }
-                const authToken = (0, jsonwebtoken_1.sign)({ user_id: u_id, user_role: USER_ROLES.patient }, JWT_SECRET);
+                const authToken = (0, jsonwebtoken_1.sign)({ user_id: u_id, user_role: interfaces_1.USER_ROLE.patient }, exports.JWT_SECRET);
                 return res.json({
                     success: true,
                     user: {
                         user_id: u_id,
+                        username: body.name,
                     },
                     auth_token: authToken,
                 });
@@ -66,7 +58,7 @@ const doLogin = (req, res) => {
     const body = req.body;
     const { userRole } = req.params;
     const userExistsQuery = `select * from user where username='${body.username}'`;
-    db.query(userExistsQuery, (err0, res0) => {
+    index_1.db.query(userExistsQuery, (err0, res0) => {
         if (err0) {
         }
         if (res0.length === 0) {
@@ -94,11 +86,12 @@ const doLogin = (req, res) => {
         const authToken = (0, jsonwebtoken_1.sign)({
             user_id: u_id,
             user_role: userRole.toUpperCase(),
-        }, JWT_SECRET);
+        }, exports.JWT_SECRET);
         return res.json({
             success: true,
             user: {
                 user_id: u_id,
+                username: user.name,
             },
             auth_token: authToken,
         });

@@ -14,7 +14,8 @@ const app = express();
 
 config();
 
-new Database();
+const obj = new Database();
+export const db = obj.db;
 
 app.use(cors());
 app.use(express.json());
@@ -25,5 +26,5 @@ app.use("/api/doctor", doctorRouter);
 app.use("/api/patient", patientRouter);
 
 app.listen(5000, () => {
-  console.log("server on 5000");
+  console.log("server on [5000]");
 });

@@ -5,7 +5,17 @@ const adminController_1 = require("../controllers/adminController");
 const router = (0, express_1.Router)();
 router.get("/init", adminController_1.initDb);
 router.post("/doctor/create", adminController_1.createDoctor);
+router.get("/doctors/get", adminController_1.getDoctors);
 // @TODO
 router.post("/doctor/update", adminController_1.updateDoctor);
 router.post("/doctor/delete", adminController_1.deleteDoctor);
+router.get("/departments", adminController_1.getAllDepartments);
+router.get("/specializations", adminController_1.getAllSpecializations);
+router.get("/specialization/:deptId", adminController_1.getSpecializationsByDeptId);
+router.get("/doctors/d/:department_id", adminController_1.getDoctorsByDepartment);
+router.get("/doctors/s/:specialization_id", adminController_1.getDoctorsBySpecialization);
+router.post("/department/create", adminController_1.createDepartment);
+router.post("/specialization/create", adminController_1.createSpecialization);
+router.get("/appointments", adminController_1.getAppointments);
+router.post("/token", adminController_1.generateToken);
 exports.default = router;

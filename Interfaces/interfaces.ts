@@ -23,3 +23,18 @@ export interface DoctorCreate {
   specialization_id: number;
   license_number: string;
 }
+
+export interface JWTPayload {
+  user_id: number;
+  user_role: USER_ROLE;
+}
+
+export enum USER_ROLE {
+  doctor = "DOCTOR",
+  patient = "PATIENT",
+  admin = "ADMIN",
+}
+
+export const TRANSACTION = "START TRANSACTION";
+export const ROLLBACK = "ROLLBACK";
+export const COMMIT = "COMMIT";
