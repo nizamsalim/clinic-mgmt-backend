@@ -32,7 +32,7 @@ router.get("/doctor/get/:name", getDoctorByName);
 // @TODO
 router.post("/doctor/update", updateDoctor);
 
-router.post("/doctor/delete", deleteDoctor);
+router.delete("/doctor/delete/:doctor_id", deleteDoctor);
 
 router.get("/departments", getAllDepartments);
 

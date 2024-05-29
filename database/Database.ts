@@ -1,4 +1,7 @@
 import { createConnection, Connection } from "mysql";
+import { db } from "../index";
+import internalServerError from "../Interfaces/ise";
+import { Response } from "express";
 
 export default class Database {
   private _db: Connection;
@@ -23,6 +26,17 @@ export default class Database {
     return this._db;
   }
 }
+
+export const runQuery = async (query: string, res: Response) => {
+  return new Promise((resolve, reject) => {
+    db.query(query, (err, res0) => {
+      if (err) {
+        return internalServerError(res, err);
+      }
+      resolve(res0);
+    });
+  });
+};
 
 // export function connectDatabase() {
 //     conn = createConnection({

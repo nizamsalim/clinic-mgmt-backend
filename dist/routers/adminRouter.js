@@ -9,7 +9,7 @@ router.get("/doctors/get", adminController_1.getDoctors);
 router.get("/doctor/get/:name", adminController_1.getDoctorByName);
 // @TODO
 router.post("/doctor/update", adminController_1.updateDoctor);
-router.post("/doctor/delete", adminController_1.deleteDoctor);
+router.delete("/doctor/delete/:doctor_id", adminController_1.deleteDoctor);
 router.get("/departments", adminController_1.getAllDepartments);
 router.get("/specializations", adminController_1.getAllSpecializations);
 router.get("/specialization/:deptId", adminController_1.getSpecializationsByDeptId);

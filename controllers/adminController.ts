@@ -1,6 +1,13 @@
 import { Request, Response } from "express";
-import { DoctorCreate } from "../Interfaces/interfaces";
+import {
+  DoctorCreate,
+  CreateResponse,
+  SelectResponse,
+  AppointmentMapping,
+} from "../Interfaces/interfaces";
 import { db } from "../index";
+import { runQuery } from "../database/Database";
+import { hashSync } from "bcrypt";
 
 const internalServerError = (res: Response, err: Error) => {
   console.log(err);
@@ -11,75 +18,62 @@ const internalServerError = (res: Response, err: Error) => {
   });
 };
 
-export const createDoctor = (req: Request, res: Response) => {
+export const test = async (req: Request, res: Response) => {
+  const data = await runQuery("select * from user", res);
+  console.log(typeof data);
+};
+
+export const createDoctor = async (req: Request, res: Response) => {
   const USER_ROLE = "DOCTOR";
   const body: DoctorCreate = req.body;
   const userExistsQuery = `select * from user where phone='${body.phone}'`;
-  db.query(userExistsQuery, (err0, data) => {
-    if (err0) {
-      return internalServerError(res, err0);
-    }
-    if (data.length !== 0) {
-      return res.json({
-        success: false,
-        error: "User with this phone number already exists",
-      });
-    }
 
-    // const passwordHash = hashSync(body.password, 10);
-    const createUserQuery = `insert into user(name,phone,user_role,username,password) values('${body.name}','${body.phone}','${USER_ROLE}','${body.username}','${body.password}')`;
-    db.query(createUserQuery, (err1, res1) => {
-      if (err1) {
-        return internalServerError(res, err1);
-      }
-      // console.log(result.insertId);
-      const u_id = res1.insertId;
-      const createDoctorQuery = `insert into doctor values(${u_id},'${body.license_number}',${body.salary},${body.department_id},${body.specialization_id})`;
-      db.query(createDoctorQuery, (err2, res2) => {
-        if (err2) {
-          return internalServerError(res, err2);
-        }
-        const getDoctorDetailsQuery = `select * from user u natural join doctor d where d.user_id=u.user_id and u.user_id=${u_id}`;
-        db.query(getDoctorDetailsQuery, (err3, res3) => {
-          if (err3) {
-            return internalServerError(res, err3);
-          }
-          const doctor = res3[0];
-          return res.json({
-            success: true,
-            doctor,
-          });
-        });
-      });
+  const data: SelectResponse = (await runQuery(
+    userExistsQuery,
+    res
+  )) as SelectResponse;
+  if (data.length !== 0) {
+    return res.json({
+      success: false,
+      error: "User with this phone number already exists",
     });
+  }
+
+  const hash = hashSync(body.password, 10);
+
+  const createUserQuery = `insert into user(name,phone,user_role,username,password) values('${body.name}','${body.phone}','${USER_ROLE}','${body.username}','${hash}')`;
+  const res1 = (await runQuery(createUserQuery, res)) as CreateResponse;
+  const u_id = res1.insertId;
+
+  const createDoctorQuery = `insert into doctor values(${u_id},'${body.license_number}',${body.salary},${body.department_id},${body.specialization_id})`;
+  const res2 = (await runQuery(createDoctorQuery, res)) as CreateResponse;
+
+  const getDoctorDetailsQuery = `select * from user u natural join doctor d where d.user_id=u.user_id and u.user_id=${u_id}`;
+  const res3 = (await runQuery(getDoctorDetailsQuery, res)) as SelectResponse;
+  const doctor = res3[0];
+  return res.json({
+    success: true,
+    doctor,
   });
 };
 
-export const getDoctors = (req: Request, res: Response) => {
+export const getDoctors = async (req: Request, res: Response) => {
   const query =
     "select u.user_id,CONCAT('Dr. ',u.name) as name,u.phone,d.license_number,d.salary,de.department_name,s.specialization_name from user u natural join doctor d natural join department de natural join specialization s";
-  db.query(query, (err0, res0) => {
-    if (err0) {
-      return internalServerError(res, err0);
-    }
-    return res.json({
-      success: true,
-      doctors: res0,
-    });
+  const res0 = (await runQuery(query, res)) as SelectResponse;
+  return res.json({
+    success: true,
+    doctors: res0,
   });
 };
 
-export const getDoctorByName = (req: Request, res: Response) => {
+export const getDoctorByName = async (req: Request, res: Response) => {
   const { name } = req.params;
   const query = `select u.user_id,CONCAT('Dr. ',u.name) as name,u.phone,d.license_number,d.salary,de.department_name,s.specialization_name from user u natural join doctor d natural join department de natural join specialization s where u.name like '%${name}%'`;
-  db.query(query, (err0, res0) => {
-    if (err0) {
-      return internalServerError(res, err0);
-    }
-    return res.json({
-      success: true,
-      doctors: res0,
-    });
+  const res0 = await runQuery(query, res);
+  return res.json({
+    success: true,
+    doctors: res0,
   });
 };
 
@@ -87,125 +81,70 @@ export const updateDoctor = (req: Request, res: Response) => {
   const body: DoctorCreate & { user_id: string; doctor_id: string } = req.body;
 };
 
-export const deleteDoctor = (req: Request, res: Response) => {
-  const { user_id } = req.body;
-  const deleteDoctorQuery = `delete from doctor where user_id=${user_id}`;
-  const deleteUserQuery = `delete from user where user_id=${user_id}`;
-  db.query(deleteDoctorQuery, (err0, res0) => {
-    if (err0) {
-      return internalServerError(res, err0);
-    }
-    db.query(deleteUserQuery, (err1, res1) => {
-      if (err1) {
-        return internalServerError(res, err1);
-      }
-      res.json({ success: true });
-    });
-  });
+export const deleteDoctor = async (req: Request, res: Response) => {
+  const { doctor_id } = req.params;
+  const deleteDoctorQuery = `delete from doctor where user_id=${doctor_id}`;
+  const deleteUserQuery = `delete from user where user_id=${doctor_id}`;
+  await runQuery(deleteDoctorQuery, res);
+  await runQuery(deleteUserQuery, res);
+  res.json({ success: true });
 };
 
-export const getAllDepartments = (req: Request, res: Response) => {
-  db.query("SELECT * from department", (err0, res0) => {
-    if (err0) {
-      return internalServerError(res, err0);
-    }
-    return res.json({ success: true, departments: res0 });
-  });
+export const getAllDepartments = async (req: Request, res: Response) => {
+  const q = "SELECT * from department";
+  const res0 = await runQuery(q, res);
+  return res.json({ success: true, departments: res0 });
 };
 
-export const getAllSpecializations = (req: Request, res: Response) => {
-  db.query(
-    "SELECT s.specialization_id,s.specialization_name,d.department_name from specialization s natural join department d",
-    (err0, res0) => {
-      if (err0) {
-        return internalServerError(res, err0);
-      }
-      return res.json({ success: true, specializations: res0 });
-    }
-  );
+export const getAllSpecializations = async (req: Request, res: Response) => {
+  const q =
+    "SELECT s.specialization_id,s.specialization_name,d.department_name from specialization s natural join department d";
+  const res0 = await runQuery(q, res);
+  return res.json({ success: true, specializations: res0 });
 };
 
-export const getDoctorsByDepartment = (req: Request, res: Response) => {
+export const getDoctorsByDepartment = async (req: Request, res: Response) => {
   const { department_id } = req.params;
-  db.query(
-    `select u.user_id,CONCAT('Dr. ',u.name) as name,u.phone,d.license_number,d.salary,de.department_name,s.specialization_name from user u natural join doctor d natural join department de natural join specialization s where de.department_id=${department_id}`,
-    (err0, res0) => {
-      if (err0) {
-        return internalServerError(res, err0);
-      }
-      res.json({ success: true, doctors: res0 });
-    }
-  );
+  const q = `select u.user_id,CONCAT('Dr. ',u.name) as name,u.phone,d.license_number,d.salary,de.department_name,s.specialization_name from user u natural join doctor d natural join department de natural join specialization s where de.department_id=${department_id}`;
+  const res0 = await runQuery(q, res);
+  return res.json({ success: true, doctors: res0 });
 };
-export const getDoctorsBySpecialization = (req: Request, res: Response) => {
+export const getDoctorsBySpecialization = async (
+  req: Request,
+  res: Response
+) => {
   const { specialization_id } = req.params;
-  db.query(
-    `select u.user_id,CONCAT('Dr. ',u.name) as name,u.phone,d.license_number,d.salary,de.department_name,s.specialization_name from user u natural join doctor d natural join department de natural join specialization s where s.specialization_id=${specialization_id}`,
-    (err0, res0) => {
-      if (err0) {
-        return internalServerError(res, err0);
-      }
-      res.json({ success: true, doctors: res0 });
-    }
-  );
+  const q = `select u.user_id,CONCAT('Dr. ',u.name) as name,u.phone,d.license_number,d.salary,de.department_name,s.specialization_name from user u natural join doctor d natural join department de natural join specialization s where s.specialization_id=${specialization_id}`;
+  const res0 = await runQuery(q, res);
+  return res.json({ success: true, doctors: res0 });
 };
 
-export const getSpecializationsByDeptId = (req: Request, res: Response) => {
+export const getSpecializationsByDeptId = async (
+  req: Request,
+  res: Response
+) => {
   const { deptId } = req.params;
-  db.query(
-    `select s.specialization_id,s.specialization_name,d.department_name from department d natural join specialization s where d.department_id=${deptId}`,
-    (err0, res0) => {
-      if (err0) {
-        return internalServerError(res, err0);
-      }
-      return res.json({ success: true, specializations: res0 });
-    }
-  );
+  const q = `select s.specialization_id,s.specialization_name,d.department_name from department d natural join specialization s where d.department_id=${deptId}`;
+  const res0 = await runQuery(q, res);
+  return res.json({ success: true, specializations: res0 });
 };
 
-export const createDepartment = (req: Request, res: Response) => {
+export const createDepartment = async (req: Request, res: Response) => {
   const { department_name } = req.body;
-  db.query(
-    `insert into department(department_name) values('${department_name}')`,
-    (err0, res0) => {
-      if (err0) {
-        return internalServerError(res, err0);
-      }
-      res.json({ success: true });
-    }
-  );
+  const q = `insert into department(department_name) values('${department_name}')`;
+  const res0 = await runQuery(q, res);
+  return res.json({ success: true });
 };
-export const createSpecialization = (req: Request, res: Response) => {
+export const createSpecialization = async (req: Request, res: Response) => {
   const { specialization_name, department_id } = req.body;
-  db.query(
-    `insert into specialization(department_id,specialization_name) values(${department_id},'${specialization_name}')`,
-    (err0, res0) => {
-      if (err0) {
-        return internalServerError(res, err0);
-      }
-      res.json({ success: true });
-    }
-  );
-};
-
-interface AppointmentMapping {
-  appointment_id: string;
-  patient_id: string;
-  doctor_id: string;
-}
-
-export const runQuery = async (query: string, res: Response) => {
-  return new Promise((resolve, reject) => {
-    db.query(query, (err0, res0) => {
-      if (err0) return internalServerError(res, err0);
-      resolve(res0[0]);
-    });
-  });
+  const q = `insert into specialization(department_id,specialization_name) values(${department_id},'${specialization_name}')`;
+  const res0 = await runQuery(q, res);
+  return res.json({ success: true });
 };
 
 export const getAppointments = (req: Request, res: Response) => {
   const getAppointmentMappings = `select ap.appointment_id,pap.patient_id,dap.doctor_id from appointment ap natural join patient_appointment pap natural join doctor_appointment dap`;
-  let appointments: Array<Object> = [];
+  let appointments: SelectResponse = [];
   db.query(
     getAppointmentMappings,
     async (err0: Error, res0: Array<AppointmentMapping>) => {
@@ -237,7 +176,7 @@ export const getAppointments = (req: Request, res: Response) => {
 export const getAppointmentById = (req: Request, res: Response) => {
   const { appointment_id } = req.params;
   const getAppointmentMappings = `select ap.appointment_id,pap.patient_id,dap.doctor_id from appointment ap natural join patient_appointment pap natural join doctor_appointment dap where ap.appointment_id=${appointment_id}`;
-  let appointments: Array<Object> = [];
+  let appointments: SelectResponse = [];
   db.query(
     getAppointmentMappings,
     async (err0: Error, res0: Array<AppointmentMapping>) => {
@@ -279,28 +218,21 @@ export const generateToken = async (req: Request, res: Response) => {
   return res.json({ success: true });
 };
 
-export const getAllPatients = (req: Request, res: Response) => {
-  db.query(
-    "select u.user_id,u.name,u.phone,p.dob,p.insurance_number,p.address,p.visits from user u natural join patient p",
-    (err0, res0) => {
-      if (err0) return internalServerError(res, err0);
-      return res.json({ success: true, patients: res0 });
-    }
-  );
+export const getAllPatients = async (req: Request, res: Response) => {
+  const q =
+    "select u.user_id,u.name,u.phone,p.dob,p.insurance_number,p.address,p.visits from user u natural join patient p";
+  const res0 = await runQuery(q, res);
+  return res.json({ success: true, patients: res0 });
 };
 
-export const getPatientByName = (req: Request, res: Response) => {
+export const getPatientByName = async (req: Request, res: Response) => {
   const { name } = req.params;
-  db.query(
-    `select u.user_id,u.name,u.phone,p.dob,p.insurance_number,p.address,p.visits from user u natural join patient p where u.name like '%${name}%'`,
-    (err0, res0) => {
-      if (err0) return internalServerError(res, err0);
-      return res.json({ success: true, patients: res0 });
-    }
-  );
+  const q = `select u.user_id,u.name,u.phone,p.dob,p.insurance_number,p.address,p.visits from user u natural join patient p where u.name like '%${name}%'`;
+  const res0 = await runQuery(q, res);
+  return res.json({ success: true, patients: res0 });
 };
 
-export const initDb = (req: Request, res: Response) => {
+export const initDb = async (req: Request, res: Response) => {
   const initQueries = [
     "create database if not exists dbs",
     "use dbs",
@@ -311,7 +243,7 @@ export const initDb = (req: Request, res: Response) => {
     "create table if not exists doctor(user_id int,license_number varchar(7),salary int,department_id int,specialization_id int,foreign key(user_id) references user(user_id) on delete cascade,foreign key(department_id) references department(department_id) on delete cascade,foreign key(specialization_id) references specialization(specialization_id) on delete cascade)",
     "create table if not exists timeslot(timeslot_id int primary key auto_increment, start_time varchar(10), end_time varchar(10),unique(start_time,end_time))",
     "create table if not exists doctor_availability(doctor_availability_id int primary key auto_increment,doctor_id int,timeslot_id int,foreign key(doctor_id) references doctor(user_id) on delete cascade,foreign key(timeslot_id) references timeslot(timeslot_id) on delete cascade,da_date date,status ENUM('FREE','BOOKED') default('FREE'))",
-    "create table if not exists appointment(appointment_id int primary key auto_increment,doctor_availability_id int, foreign key(doctor_availability_id) references doctor_availability(doctor_availability_id) on delete cascade,status ENUM('BOOKED','COMPLETED') default('BOOKED'))",
+    "create table if not exists appointment(appointment_id int primary key auto_increment,doctor_availability_id int, foreign key(doctor_availability_id) references doctor_availability(doctor_availability_id) on delete cascade,status ENUM('BOOKED','COMPLETED','CANCELLED') default('BOOKED'))",
     "create table if not exists patient_appointment(patient_id int,appointment_id int, foreign key(patient_id) references patient(user_id) on delete cascade,foreign key(appointment_id) references appointment(appointment_id) on delete cascade)",
     "create table if not exists doctor_appointment(doctor_id int,appointment_id int, foreign key(doctor_id) references doctor(user_id) on delete cascade,foreign key(appointment_id) references appointment(appointment_id) on delete cascade)",
     // "alter table user auto_increment=1000",
@@ -320,6 +252,8 @@ export const initDb = (req: Request, res: Response) => {
     // "alter table specialization auto_increment=9000",
     // "alter table doctor auto_increment=3000",
     // "alter table timeslot auto_increment=7000",
+    "alter table user auto_increment=1000",
+    "alter table appointment auto_increment=3000",
     "INSERT INTO timeslot (start_time, end_time) VALUES \
     ('10:00 A.M.', '10:15 A.M.'),\
     ('10:15 A.M.', '10:30 A.M.'),\
@@ -328,8 +262,7 @@ export const initDb = (req: Request, res: Response) => {
     ('11:00 A.M.', '11:15 A.M.'),\
     ('11:15 A.M.', '11:30 A.M.'),\
     ('11:30 A.M.', '11:45 A.M.'),\
-    ('11:45 A.M.', '12:00 P.M.')",
-    "INSERT INTO timeslot (start_time, end_time) VALUES \
+    ('11:45 A.M.', '12:00 P.M.'),\
     ('2:00 P.M.', '2:15 P.M.'),\
     ('2:15 P.M.', '2:30 P.M.'),\
     ('2:30 P.M.', '2:45 P.M.'),\
@@ -341,9 +274,9 @@ export const initDb = (req: Request, res: Response) => {
     "INSERT INTO department (department_name) VALUES ('Cardiology')",
     "INSERT INTO department (department_name) VALUES ('Orthopaedics')",
     "INSERT INTO department (department_name) VALUES ('Pediatrics')",
-    "INSERT INTO department (department_name) VALUES ('Oncology')",
-    "INSERT INTO department (department_name) VALUES ('Ophthalmology')",
-    "INSERT INTO department (department_name) VALUES ('Neurology')",
+    // "INSERT INTO department (department_name) VALUES ('Oncology')",
+    // "INSERT INTO department (department_name) VALUES ('Ophthalmology')",
+    // "INSERT INTO department (department_name) VALUES ('Neurology')",
 
     "INSERT INTO specialization (specialization_name, department_id) VALUES \
       ('Interventional Cardiology', 1),\
@@ -357,23 +290,23 @@ export const initDb = (req: Request, res: Response) => {
       ('Neonatology', 3),\
       ('Pediatric Oncology', 3),\
       ('Pediatric Cardiology', 3)",
-    "INSERT INTO specialization (specialization_name, department_id) VALUES \
-      ('Medical Oncology', 4),\
-      ('Radiation Oncology', 4),\
-      ('Surgical Oncology', 4)",
-    "INSERT INTO specialization (specialization_name, department_id) VALUES \
-      ('Retina and Vitreous', 5),\
-      ('Cornea and External Disease', 5),\
-      ('Ophthalmic Plastic Surgery', 5)",
-    "INSERT INTO specialization (specialization_name, department_id) VALUES \
-      ('Stroke Neurology', 6),\
-      ('Epilepsy', 6),\
-      ('Movement Disorders', 6)",
+    // "INSERT INTO specialization (specialization_name, department_id) VALUES \
+    //   ('Medical Oncology', 4),\
+    //   ('Radiation Oncology', 4),\
+    //   ('Surgical Oncology', 4)",
+    // "INSERT INTO specialization (specialization_name, department_id) VALUES \
+    //   ('Retina and Vitreous', 5),\
+    //   ('Cornea and External Disease', 5),\
+    //   ('Ophthalmic Plastic Surgery', 5)",
+    // "INSERT INTO specialization (specialization_name, department_id) VALUES \
+    //   ('Stroke Neurology', 6),\
+    //   ('Epilepsy', 6),\
+    //   ('Movement Disorders', 6)",
     "insert into user(name,user_role,username,password) values('Admin','ADMIN','admin','admin123')",
   ];
   for (let i = 0; i < initQueries.length; i++) {
     try {
-      db.query(initQueries[i]);
+      await runQuery(initQueries[i], res);
     } catch (error) {
       continue;
     }
