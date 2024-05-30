@@ -23,6 +23,7 @@ export default class Database {
     this._db = remoteConn;
     this._db.connect((err) => {
       if (err) throw err;
+      console.log("Database connected");
     });
   }
 
@@ -35,6 +36,7 @@ export const runQuery = async (query: string, res: Response) => {
   return new Promise((resolve, reject) => {
     db.query(query, (err, res0) => {
       if (err) {
+        console.log(err);
         return internalServerError(res, err);
       }
       resolve(res0);

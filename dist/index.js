@@ -17,4 +17,6 @@ app.use("/api/auth", index_1.authRouter);
 app.use("/api/admin", index_1.adminRouter);
 app.use("/api/doctor", index_1.doctorRouter);
 app.use("/api/patient", index_1.patientRouter);
-app.listen(5000, () => { });
+app.listen(5000, () => {
+    console.log("Server started");
+});

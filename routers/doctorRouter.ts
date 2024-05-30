@@ -18,7 +18,6 @@ const verifyDoctorAuthToken = (req: Request, res: Response, next: Function) => {
   try {
     payload = verify(auth_token, JWT_SECRET) as JWTPayload;
   } catch (error) {
-    console.log(error);
     return res.json({ success: false, error: "Incorrect auth token" });
   }
   if (payload.user_role !== USER_ROLE.doctor) {

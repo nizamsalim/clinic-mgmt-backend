@@ -36,6 +36,7 @@ class Database {
         this._db.connect((err) => {
             if (err)
                 throw err;
+            console.log("Database connected");
         });
     }
     get db() {
@@ -47,6 +48,7 @@ const runQuery = (query, res) => __awaiter(void 0, void 0, void 0, function* () 
     return new Promise((resolve, reject) => {
         index_1.db.query(query, (err, res0) => {
             if (err) {
+                console.log(err);
                 return (0, ise_1.default)(res, err);
             }
             resolve(res0);

@@ -254,7 +254,7 @@ export const test = async (req: Request, res: Response) => {
 export const initDb = async (req: Request, res: Response) => {
   const initQueries = [
     // "create database if not exists dbs",
-    "use sql12710339",
+    "use bwv4vur6z4o8bramdpve",
     "create table if not exists user (user_id int primary key auto_increment,name varchar(50),phone varchar(10),user_role ENUM('ADMIN','PATIENT','DOCTOR'),username varchar(20),password varchar(100))",
     "create table if not exists patient(user_id int,dob date,insurance_number varchar(7),address varchar(100),visits int,foreign key(user_id) references user(user_id) on delete cascade)",
     "create table if not exists department(department_id int primary key auto_increment,department_name varchar(20))",

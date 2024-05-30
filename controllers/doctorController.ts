@@ -12,7 +12,6 @@ export const createDoctorAvailability = async (req: Request, res: Response) => {
 export const getTimeSlotsByDate = async (req: Request, res: Response) => {
   const user_id = req.user_id;
   const { da_date } = req.body;
-  // console.log(da_date);
   const query = `select * from timeslot where timeslot_id not in (select timeslot_id from doctor_availability where doctor_id=${user_id} and da_date='${da_date}');`;
   const res0 = await runQuery(query, res);
   return res.json({ success: true, timeslots: res0 });
