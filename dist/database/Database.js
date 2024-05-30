@@ -16,22 +16,26 @@ exports.runQuery = void 0;
 const mysql_1 = require("mysql");
 const index_1 = require("../index");
 const ise_1 = __importDefault(require("../Interfaces/ise"));
+const dotenv_1 = require("dotenv");
 class Database {
     constructor() {
-        this._db = (0, mysql_1.createConnection)({
+        (0, dotenv_1.config)();
+        const localConn = (0, mysql_1.createConnection)({
             host: "localhost",
             user: "root",
             password: "nizam123",
-            // database: "dbs_project",
+            database: "dbs",
         });
+        const remoteConn = (0, mysql_1.createConnection)({
+            host: process.env.DATABASE_HOST,
+            user: process.env.DATABASE_USERNAME,
+            password: process.env.DATABASE_PASSWORD,
+            database: process.env.DATABASE,
+        });
+        this._db = remoteConn;
         this._db.connect((err) => {
             if (err)
                 throw err;
-            this._db.query("create database if not exists dbs", (err0, res0) => {
-                this._db.query("use dbs", (err1, res1) => {
-                    console.log("Database connected");
-                });
-            });
         });
     }
     get db() {

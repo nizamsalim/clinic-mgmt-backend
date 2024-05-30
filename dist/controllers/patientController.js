@@ -11,14 +11,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteAppointment = exports.getMyAppointments = exports.getAvailableDoctors = exports.createAppointment = void 0;
 const Database_1 = require("../database/Database");
-const internalServerError = (res, err) => {
-    console.log(err);
-    return res.status(500).json({
-        success: false,
-        statusCode: 500,
-        error: "Internal Server Error",
-    });
-};
 const createAppointment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { doctor_availability_id } = req.body;
     const user_id = req.user_id;

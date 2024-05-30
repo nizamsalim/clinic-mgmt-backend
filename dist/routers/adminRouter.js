@@ -4,6 +4,8 @@ const express_1 = require("express");
 const adminController_1 = require("../controllers/adminController");
 const router = (0, express_1.Router)();
 router.get("/init", adminController_1.initDb);
+router.get("/drop", adminController_1.dropDb);
+router.get("/test6364848435", adminController_1.test);
 router.post("/doctor/create", adminController_1.createDoctor);
 router.get("/doctors/get", adminController_1.getDoctors);
 router.get("/doctor/get/:name", adminController_1.getDoctorByName);

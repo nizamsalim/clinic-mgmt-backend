@@ -18,11 +18,6 @@ const internalServerError = (res: Response, err: Error) => {
   });
 };
 
-export const test = async (req: Request, res: Response) => {
-  const data = await runQuery("select * from user", res);
-  console.log(typeof data);
-};
-
 export const createDoctor = async (req: Request, res: Response) => {
   const USER_ROLE = "DOCTOR";
   const body: DoctorCreate = req.body;
@@ -232,18 +227,42 @@ export const getPatientByName = async (req: Request, res: Response) => {
   return res.json({ success: true, patients: res0 });
 };
 
+export const dropDb = async (req: Request, res: Response) => {
+  const dropQueries = [
+    "drop table doctor_appointment",
+    "drop table patient_appointment",
+    "drop table appointment",
+    "drop table doctor_availability",
+    "drop table timeslot",
+    "drop table doctor",
+    "drop table specialization",
+    "drop table department",
+    "drop table patient",
+    "drop table user",
+  ];
+  for (let i = 0; i < dropQueries.length; i++) {
+    await runQuery(dropQueries[i], res);
+  }
+  res.end();
+};
+
+export const test = async (req: Request, res: Response) => {
+  const data = await runQuery("select * from user", res);
+  res.json({ success: true, data: data });
+};
+
 export const initDb = async (req: Request, res: Response) => {
   const initQueries = [
-    "create database if not exists dbs",
-    "use dbs",
+    // "create database if not exists dbs",
+    "use sql12710339",
     "create table if not exists user (user_id int primary key auto_increment,name varchar(50),phone varchar(10),user_role ENUM('ADMIN','PATIENT','DOCTOR'),username varchar(20),password varchar(100))",
     "create table if not exists patient(user_id int,dob date,insurance_number varchar(7),address varchar(100),visits int,foreign key(user_id) references user(user_id) on delete cascade)",
     "create table if not exists department(department_id int primary key auto_increment,department_name varchar(20))",
     "create table if not exists specialization(specialization_id int primary key auto_increment,specialization_name varchar(50),department_id int,foreign key(department_id) references department(department_id) on delete cascade)",
     "create table if not exists doctor(user_id int,license_number varchar(7),salary int,department_id int,specialization_id int,foreign key(user_id) references user(user_id) on delete cascade,foreign key(department_id) references department(department_id) on delete cascade,foreign key(specialization_id) references specialization(specialization_id) on delete cascade)",
     "create table if not exists timeslot(timeslot_id int primary key auto_increment, start_time varchar(10), end_time varchar(10),unique(start_time,end_time))",
-    "create table if not exists doctor_availability(doctor_availability_id int primary key auto_increment,doctor_id int,timeslot_id int,foreign key(doctor_id) references doctor(user_id) on delete cascade,foreign key(timeslot_id) references timeslot(timeslot_id) on delete cascade,da_date date,status ENUM('FREE','BOOKED') default('FREE'))",
-    "create table if not exists appointment(appointment_id int primary key auto_increment,doctor_availability_id int, foreign key(doctor_availability_id) references doctor_availability(doctor_availability_id) on delete cascade,status ENUM('BOOKED','COMPLETED','CANCELLED') default('BOOKED'))",
+    "create table if not exists doctor_availability(doctor_availability_id int primary key auto_increment,doctor_id int,timeslot_id int,foreign key(doctor_id) references doctor(user_id) on delete cascade,foreign key(timeslot_id) references timeslot(timeslot_id) on delete cascade,da_date date,status ENUM('FREE','BOOKED') default 'FREE')",
+    "create table if not exists appointment(appointment_id int primary key auto_increment,doctor_availability_id int, foreign key(doctor_availability_id) references doctor_availability(doctor_availability_id) on delete cascade,status ENUM('BOOKED','COMPLETED','CANCELLED') default 'BOOKED')",
     "create table if not exists patient_appointment(patient_id int,appointment_id int, foreign key(patient_id) references patient(user_id) on delete cascade,foreign key(appointment_id) references appointment(appointment_id) on delete cascade)",
     "create table if not exists doctor_appointment(doctor_id int,appointment_id int, foreign key(doctor_id) references doctor(user_id) on delete cascade,foreign key(appointment_id) references appointment(appointment_id) on delete cascade)",
     // "alter table user auto_increment=1000",

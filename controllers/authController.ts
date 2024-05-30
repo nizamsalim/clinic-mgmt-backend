@@ -8,8 +8,6 @@ import {
   User,
 } from "../Interfaces/interfaces";
 import { sign } from "jsonwebtoken";
-import { db } from "../index";
-import internalServerError from "../Interfaces/ise";
 import { runQuery } from "../database/Database";
 
 import { compareSync, hashSync } from "bcrypt";

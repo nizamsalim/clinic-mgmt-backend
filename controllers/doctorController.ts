@@ -1,6 +1,4 @@
 import { Response, Request } from "express";
-import { db } from "../index";
-import internalServerError from "../Interfaces/ise";
 import { runQuery } from "../database/Database";
 
 export const createDoctorAvailability = async (req: Request, res: Response) => {

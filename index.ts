@@ -12,8 +12,6 @@ import Database from "./database/Database";
 
 const app = express();
 
-config();
-
 const obj = new Database();
 export const db = obj.db;
 
@@ -25,6 +23,4 @@ app.use("/api/admin", adminRouter);
 app.use("/api/doctor", doctorRouter);
 app.use("/api/patient", patientRouter);
 
-app.listen(5000, () => {
-  console.log("server on [5000]");
-});
+app.listen(5000, () => {});

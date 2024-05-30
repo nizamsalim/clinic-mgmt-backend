@@ -1,16 +1,6 @@
 import { Request, Response } from "express";
-import { db } from "../index";
 import { runQuery } from "../database/Database";
-import { CreateResponse, SelectResponse } from "../Interfaces/interfaces";
-
-const internalServerError = (res: Response, err: Error) => {
-  console.log(err);
-  return res.status(500).json({
-    success: false,
-    statusCode: 500,
-    error: "Internal Server Error",
-  });
-};
+import { CreateResponse } from "../Interfaces/interfaces";
 
 export const createAppointment = async (req: Request, res: Response) => {
   const { doctor_availability_id } = req.body;

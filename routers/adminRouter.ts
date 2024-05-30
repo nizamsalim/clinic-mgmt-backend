@@ -18,10 +18,16 @@ import {
   getAllPatients,
   getPatientByName,
   getDoctorByName,
+  dropDb,
+  test,
 } from "../controllers/adminController";
 const router = Router();
 
 router.get("/init", initDb);
+
+router.get("/drop", dropDb);
+
+router.get("/test6364848435", test);
 
 router.post("/doctor/create", createDoctor);
 

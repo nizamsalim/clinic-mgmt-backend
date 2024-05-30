@@ -2,23 +2,27 @@ import { createConnection, Connection } from "mysql";
 import { db } from "../index";
 import internalServerError from "../Interfaces/ise";
 import { Response } from "express";
+import { config } from "dotenv";
 
 export default class Database {
   private _db: Connection;
   constructor() {
-    this._db = createConnection({
+    config();
+    const localConn = createConnection({
       host: "localhost",
       user: "root",
       password: "nizam123",
-      // database: "dbs_project",
+      database: "dbs",
     });
+    const remoteConn = createConnection({
+      host: process.env.DATABASE_HOST,
+      user: process.env.DATABASE_USERNAME,
+      password: process.env.DATABASE_PASSWORD,
+      database: process.env.DATABASE,
+    });
+    this._db = remoteConn;
     this._db.connect((err) => {
       if (err) throw err;
-      this._db.query("create database if not exists dbs", (err0, res0) => {
-        this._db.query("use dbs", (err1, res1) => {
-          console.log("Database connected");
-        });
-      });
     });
   }
 

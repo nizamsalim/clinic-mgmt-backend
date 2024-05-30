@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.initDb = exports.getPatientByName = exports.getAllPatients = exports.generateToken = exports.getAppointmentById = exports.getAppointments = exports.createSpecialization = exports.createDepartment = exports.getSpecializationsByDeptId = exports.getDoctorsBySpecialization = exports.getDoctorsByDepartment = exports.getAllSpecializations = exports.getAllDepartments = exports.deleteDoctor = exports.updateDoctor = exports.getDoctorByName = exports.getDoctors = exports.createDoctor = exports.test = void 0;
+exports.initDb = exports.test = exports.dropDb = exports.getPatientByName = exports.getAllPatients = exports.generateToken = exports.getAppointmentById = exports.getAppointments = exports.createSpecialization = exports.createDepartment = exports.getSpecializationsByDeptId = exports.getDoctorsBySpecialization = exports.getDoctorsByDepartment = exports.getAllSpecializations = exports.getAllDepartments = exports.deleteDoctor = exports.updateDoctor = exports.getDoctorByName = exports.getDoctors = exports.createDoctor = void 0;
 const index_1 = require("../index");
 const Database_1 = require("../database/Database");
 const bcrypt_1 = require("bcrypt");
@@ -21,11 +21,6 @@ const internalServerError = (res, err) => {
         error: "Internal Server Error",
     });
 };
-const test = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const data = yield (0, Database_1.runQuery)("select * from user", res);
-    console.log(typeof data);
-});
-exports.test = test;
 const createDoctor = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const USER_ROLE = "DOCTOR";
     const body = req.body;
@@ -206,18 +201,42 @@ const getPatientByName = (req, res) => __awaiter(void 0, void 0, void 0, functio
     return res.json({ success: true, patients: res0 });
 });
 exports.getPatientByName = getPatientByName;
+const dropDb = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const dropQueries = [
+        "drop table doctor_appointment",
+        "drop table patient_appointment",
+        "drop table appointment",
+        "drop table doctor_availability",
+        "drop table timeslot",
+        "drop table doctor",
+        "drop table specialization",
+        "drop table department",
+        "drop table patient",
+        "drop table user",
+    ];
+    for (let i = 0; i < dropQueries.length; i++) {
+        yield (0, Database_1.runQuery)(dropQueries[i], res);
+    }
+    res.end();
+});
+exports.dropDb = dropDb;
+const test = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const data = yield (0, Database_1.runQuery)("select * from user", res);
+    res.json({ success: true, data: data });
+});
+exports.test = test;
 const initDb = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const initQueries = [
-        "create database if not exists dbs",
-        "use dbs",
+        // "create database if not exists dbs",
+        "use sql12710339",
         "create table if not exists user (user_id int primary key auto_increment,name varchar(50),phone varchar(10),user_role ENUM('ADMIN','PATIENT','DOCTOR'),username varchar(20),password varchar(100))",
         "create table if not exists patient(user_id int,dob date,insurance_number varchar(7),address varchar(100),visits int,foreign key(user_id) references user(user_id) on delete cascade)",
         "create table if not exists department(department_id int primary key auto_increment,department_name varchar(20))",
         "create table if not exists specialization(specialization_id int primary key auto_increment,specialization_name varchar(50),department_id int,foreign key(department_id) references department(department_id) on delete cascade)",
         "create table if not exists doctor(user_id int,license_number varchar(7),salary int,department_id int,specialization_id int,foreign key(user_id) references user(user_id) on delete cascade,foreign key(department_id) references department(department_id) on delete cascade,foreign key(specialization_id) references specialization(specialization_id) on delete cascade)",
         "create table if not exists timeslot(timeslot_id int primary key auto_increment, start_time varchar(10), end_time varchar(10),unique(start_time,end_time))",
-        "create table if not exists doctor_availability(doctor_availability_id int primary key auto_increment,doctor_id int,timeslot_id int,foreign key(doctor_id) references doctor(user_id) on delete cascade,foreign key(timeslot_id) references timeslot(timeslot_id) on delete cascade,da_date date,status ENUM('FREE','BOOKED') default('FREE'))",
-        "create table if not exists appointment(appointment_id int primary key auto_increment,doctor_availability_id int, foreign key(doctor_availability_id) references doctor_availability(doctor_availability_id) on delete cascade,status ENUM('BOOKED','COMPLETED','CANCELLED') default('BOOKED'))",
+        "create table if not exists doctor_availability(doctor_availability_id int primary key auto_increment,doctor_id int,timeslot_id int,foreign key(doctor_id) references doctor(user_id) on delete cascade,foreign key(timeslot_id) references timeslot(timeslot_id) on delete cascade,da_date date,status ENUM('FREE','BOOKED') default 'FREE')",
+        "create table if not exists appointment(appointment_id int primary key auto_increment,doctor_availability_id int, foreign key(doctor_availability_id) references doctor_availability(doctor_availability_id) on delete cascade,status ENUM('BOOKED','COMPLETED','CANCELLED') default 'BOOKED')",
         "create table if not exists patient_appointment(patient_id int,appointment_id int, foreign key(patient_id) references patient(user_id) on delete cascade,foreign key(appointment_id) references appointment(appointment_id) on delete cascade)",
         "create table if not exists doctor_appointment(doctor_id int,appointment_id int, foreign key(doctor_id) references doctor(user_id) on delete cascade,foreign key(appointment_id) references appointment(appointment_id) on delete cascade)",
         // "alter table user auto_increment=1000",
