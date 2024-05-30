@@ -1,9 +1,0 @@
-user 1000
-patient 2000
-doctor 3000
-appointment 4000
-token 5000
-specialization 6000
-timeslot 7000
-department 8000
-specialization 9000
