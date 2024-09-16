@@ -18,6 +18,14 @@ export const db = obj.db;
 app.use(cors());
 app.use(express.json());
 
+app.use("/health_check",(req,res)=>{
+  res.status(200).json({
+    success:true,
+    statusCode:200,
+    message:"Server healthy"
+  })
+})
+
 app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/doctor", doctorRouter);
