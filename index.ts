@@ -18,7 +18,7 @@ export const db = obj.db;
 app.use(cors());
 app.use(express.json());
 
-app.use("/health_check",(req,res)=>{
+app.get("/health_check",(req,res)=>{
   res.status(200).json({
     success:true,
     statusCode:200,
